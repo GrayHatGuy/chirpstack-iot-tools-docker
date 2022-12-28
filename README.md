@@ -6,6 +6,8 @@ open-source LoRaWAN Network Server (v4) using [Docker Compose](https://docs.dock
 **Note:** Please use this `docker-compose.yml` file as a starting point for testing
 but keep in mind that for production usage it might need modifications. 
 
+Includes IoT tool for node-red and homeassistant
+
 ## Directory layout
 
 * `docker-compose.yml`: the docker-compose file containing the services
@@ -36,9 +38,32 @@ PostgreSQL and Redis data is persisted in Docker volumes, see the `docker-compos
 ## Requirements
 
 Before using this `docker-compose.yml` file, make sure you have [Docker](https://www.docker.com/community-edition)
-installed.
+installed. 
 
-## Importing device repository
+engine https://docs.docker.com/engine/install/
+desktop https://docs.docker.com/get-docker/
+compose https://docs.docker.com/compose/install/
+
+##Backup:
+
+docker save $(docker images -q) -o /path/to/save/mydockersimages.tar
+
+##Remove everything
+
+docker container stop $(docker container ls -aq)
+docker container rm -f $(docker container ls -aq)
+docker rmi -f $(docker images -aq)
+docker volume prune
+
+##Create a directory for the repo composition
+mkdir ~/docker
+cd ~/docker
+
+##Clone git to working docker directory
+git clone https://github.com/GrayHatGuy/chirpstack-iot-tools-docker.git
+cd chirpstack-iot-tools-docker
+
+## Importing device repository (TBD)
 
 To import the [lorawan-devices](https://github.com/TheThingsNetwork/lorawan-devices)
 repository (optional step), run the following command:
@@ -58,11 +83,30 @@ latest revision no longer contains a `LICENSE` file.
 To start the ChirpStack simply run:
 
 ```bash
-$ docker-compose up
+$ docker compose up -d
 ```
 
 After all the components have been initialized and started, you should be able
 to open http://localhost:8080/ in your browser.
+
+## Add a gateway
+
+  Prerequisites
+    Setup gateway packet forwarder per OEM.  Example RAK7246
+    Set region gateway server and UDP port settings and channel plan in 
+
+    sudo gateway-config
+
+    Point the configuration file for your chirpstack-gateway-server container IP and port 1700.
+    
+  Application/Network Server
+    Log into you web portal using http://localhost:8080 localhost is the machine running docker.
+    ssh into you gateway and find gateway ID using	
+
+    sudo gateway-version
+
+  At http port 8080 update gateway id and wait 30 seconds see LoRaWAN frame tab for details
+
 
 ##
 
