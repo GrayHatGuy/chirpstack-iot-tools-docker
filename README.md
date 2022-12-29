@@ -50,16 +50,14 @@ docker save $(docker images -q) -o /path/to/save/mydockersimages.tar
 
 ##Remove everything
 
-docker container stop $(docker container ls -aq)
-docker container rm -f $(docker container ls -aq)
-docker rmi -f $(docker images -aq)
-docker volume prune
+docker container stop $(docker container ls -aq) && docker container rm -f $(docker container ls -aq) && docker rmi -f $(docker images -aq) && docker volume prune && docker network prune
 
 ##Create a directory for the repo composition
-mkdir ~/docker
-cd ~/docker
+
+mkdir ~/docker && cd ~/docker
 
 ##Clone git to working docker directory
+
 git clone https://github.com/GrayHatGuy/chirpstack-iot-tools-docker.git
 cd chirpstack-iot-tools-docker
 
@@ -90,23 +88,36 @@ After all the components have been initialized and started, you should be able
 to open http://localhost:8080/ in your browser.
 
 ## Add a gateway
+Prerequisites
+	Setup gateway packet forwarder per OEM.  Example RAK7246
+	Set region gateway server and UDP port settings and channel plan in 
+	sudo gateway-config
+	Point the configuration file for your chirpstack-gateway-server container IP and port 1700.
+Application/Network Server
+	http://localhost:8080 localhost is the machine running docker.
+	Log in to chirpstack application portal.
+ssh into the gateway and find gatewayID using	
 
-  Prerequisites
-    Setup gateway packet forwarder per OEM.  Example RAK7246
-    Set region gateway server and UDP port settings and channel plan in 
+sudo gateway-version
 
-    sudo gateway-config
+Add new and update gateway id in portal gui then wait 30-60 seconds to connect.
+See LoRaWAN frame tab for details the gateway will also appear on the dashboard.
 
-    Point the configuration file for your chirpstack-gateway-server container IP and port 1700.
-    
-  Application/Network Server
-    Log into you web portal using http://localhost:8080 localhost is the machine running docker.
-    ssh into you gateway and find gateway ID using	
+IoT tools accessible ports
+	Grafana
+http://localhost:1880/
+	node-red 
+http://localhost:1800
+	homeassistant
+http://localhost:1800
+  REST/API
+http://localhost:8090/
 
-    sudo gateway-version
+Minimum required ports for WAN access
+8080 8090 1700 1883
 
-  At http port 8080 update gateway id and wait 30 seconds see LoRaWAN frame tab for details
-
+Localnet only ports until TLS added
+1880, 8123, 3000
 
 ##
 
