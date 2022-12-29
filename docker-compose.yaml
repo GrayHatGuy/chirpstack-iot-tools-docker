@@ -68,6 +68,16 @@ services:
       - 1880:1880
     volumes: 
       - ./configuration/nodered:/data
+
+  grafana:
+    image: grafana/grafana-enterprise:latest
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    volumes: 
+      - /configuration/grafana-storage:/var/lib/grafana
+
 volumes:
   postgresqldata:
   redisdata:
+  grafana-storage:
