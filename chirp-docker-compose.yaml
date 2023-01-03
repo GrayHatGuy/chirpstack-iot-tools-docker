@@ -64,35 +64,9 @@
         - ./configuration/mosquitto/data:/mosquitto/data
         - ./configuration/mosquitto/log:/mosquitto/log
 
-    nodered:
-      image: nodered/node-red:latest
-      restart: unless-stopped
-      ports:
-        - 1880:1880
-      volumes: 
-        - ./configuration/nodered:/data
-
-    homeassistant:
-      image: homeassistant/home-assistant:stable
-      restart: unless-stopped
-      ports:
-        - 8123:8123
-      volumes: 
-        - ./configuration/homeassistant/config:/config
-        
-    grafana:
-      image: grafana/grafana:7.5.7
-      ports:
-        - 3000:3000
-      restart: unless-stopped
-      volumes:
-      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
-      - grafana-data:/var/lib/grafana
-
   volumes:
     postgresqldata:
     redisdata:
     config:
     data:
     log:
-    grafana-data:
