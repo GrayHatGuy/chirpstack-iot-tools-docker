@@ -1,72 +1,144 @@
-  version: "3"
+version: "3"
 
-  services:
-    chirpstack:
-      image: chirpstack/chirpstack:4.1.1
-      command: -c /etc/chirpstack
-      restart: unless-stopped
-      volumes:
-        - ./configuration/chirpstack:/etc/chirpstack
-        - ./lorawan-devices:/opt/lorawan-devices
-      depends_on:
-        - postgres
-        - mosquitto
-        - redis
-      environment:
-        - MQTT_BROKER_HOST=mosquitto
-        - REDIS_HOST=redis
-        - POSTGRESQL_HOST=postgres
-      ports:
-        - 8080:8080
+services:
+  chirpstack:
+    image: chirpstack/chirpstack:4.1.1
+    command: -c /etc/chirpstack
+    restart: unless-stopped
+    volumes:
+      - ./configuration/chirpstack:/etc/chirpstack
+      - ./lorawan-devices:/opt/lorawan-devices
+    depends_on:
+      - postgres
+      - mosquitto
+      - redis
+    environment:
+      - MQTT_BROKER_HOST=mosquitto
+      - REDIS_HOST=redis
+      - POSTGRESQL_HOST=postgres
+    ports:
+      - 8080:8080
 
-    chirpstack-gateway-bridge-us915:
-      image: chirpstack/chirpstack-gateway-bridge:4.0.3
-      restart: unless-stopped
-      ports:
-        - 1700:1700/udp
-      volumes:
-        - ./configuration/chirpstack-gateway-bridge:/etc/chirpstack-gateway-bridge
-      depends_on: 
-        - mosquitto
+  chirpstack-gateway-bridge-us915:
+    image: chirpstack/chirpstack-gateway-bridge:4.0.3
+    restart: unless-stopped
+    ports:
+      - 1700:1700/udp
+    volumes:
+      - ./configuration/chirpstack-gateway-bridge:/etc/chirpstack-gateway-bridge
+    depends_on: 
+      - mosquitto
 
-    chirpstack-rest-api:
-      image: chirpstack/chirpstack-rest-api:4.1.1
-      restart: unless-stopped
-      command: --server chirpstack:8080 --bind 0.0.0.0:8090 --insecure
-      ports:
-        - 8090:8090
-      depends_on:
-        - chirpstack
+  chirpstack-rest-api:
+    image: chirpstack/chirpstack-rest-api:4.1.1
+    restart: unless-stopped
+    command: --server chirpstack:8080 --bind 0.0.0.0:8090 --insecure
+    ports:
+      - 8090:8090
+    depends_on:
+      - chirpstack
 
-    postgres:
-      image: postgres:14-alpine
-      restart: unless-stopped
-      volumes:
-        - ./configuration/postgresql/initdb:/docker-entrypoint-initdb.d
-        - postgresqldata:/var/lib/postgresql/data
-      environment:
-        - POSTGRES_PASSWORD=root
+  postgres:
+    image: postgres:14-alpine
+    restart: unless-stopped
+    volumes:
+      - ./configuration/postgresql/initdb:/docker-entrypoint-initdb.d
+      - postgresqldata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=root
 
-    redis:
-      image: redis:7-alpine
-      restart: unless-stopped
-      volumes:
-        - redisdata:/data
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
 
-    mosquitto:
-      image: eclipse-mosquitto:2
-      restart: unless-stopped
-      ports:
-        - 1883:1883
-      volumes: 
-        - ./configuration/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
-        - ./configuration/mosquitto/config:/mosquitto/config
-        - ./configuration/mosquitto/data:/mosquitto/data
-        - ./configuration/mosquitto/log:/mosquitto/log
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - 1883:1883
+    volumes: 
+      - ./configuration/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./configuration/mosquitto/config:/mosquitto/config
+      - ./configuration/mosquitto/data:/mosquitto/data
+      - ./configuration/mosquitto/log:/mosquitto/log
+  udp-packet-forwarder:
+  # use pre-defined image
+    image: rakwireless/udp-packet-forwarder:latest
+  # or comment out image: and build it yourself / with balena services
+  #build:
+  #  context: .
+  #  args:
+  #    ARCH: rpi
 
-  volumes:
-    postgresqldata:
-    redisdata:
-    config:
-    data:
-    log:
+    container_name: udp-packet-forwarder
+    restart: unless-stopped
+    privileged: true
+    network_mode: host      # required to read main interface MAC instead of virtual one, 
+                            # you don't need this if you set the GATEWAY_EUI manually
+  
+    volumes:
+      - ./global_conf.json:/app/global_conf.json:ro
+    environment:
+    
+    # To select your concentrator you have 3 options:
+    # Option 1: set the MODEL to the WisGate Developer Gateway model number
+    # Option 2: set the MODEL to the WisLink LPWAN model number
+    # Option 3: set the CONCENTRATOR directly
+      MODEL: "RAK2287"
+    #MODEL: "RAK5146"
+    #CONCENTRATOR: "SX1302"
+
+    # When using options 2 or 3 above, you will probably have to specify other features of the module.
+    # These are the defaults:
+    #INTERFACE: "SPI"
+    #HAS_GPS: "1"
+    #HAS_LTE: "0"
+    #RESET_GPIO: 17
+    #POWER_EN_GPIO: 0
+    #POWER_EN_LOGIC: 0
+
+    # If you have the concentrator connected to a different port
+    # than the default ones ("/dev/spidev0.0" for SPI or "/dev/ttyACM0" for USB) 
+    # you can define it this way
+    #RADIO_DEV: "/dev/spidev0.1"
+    #RADIO_DEV: "/dev/ttyACM0"
+
+    # SPI speed is automatically set depending on the concentrator,
+    # but should you have any trouble you can change it like this:
+    #SPI_SPEED: 2000000
+
+    # Same for the GPS
+    # GPS_DEV: "/dev/i2c-1"
+    #GPS_DEV: "/dev/ttyACM1"
+
+    # The service will define the Gateway EUI based on a network interface: eth0, wlan0 or usb0.
+    # If neither of these exist or you want it to use a different interface you can define the NIC this way:
+    #GATEWAY_EUI_NIC: "enx00e04c68160f"
+
+    # You can also set a custom Gateway EUI (8 bytes in hex format)
+    #GATEWAY_EUI: "1122334455667788"
+
+    # The default LNS server is the European TTN server. 
+    # If you still want to use TTN but a different region you can set it this way:
+    #TTN_REGION: "us1"
+
+    # Or you can set a completely different LNS server.
+      SERVER_HOST: 192.168.0.106
+      SERVER_PORT: 1700
+
+    # The default frequency band is EU868, 
+    # if your module uses a different band you have to select it here:
+      BAND: "us_902_928"
+
+    # If you want the gateway to report a specific lat/lon/alt you can set them this way:
+      GPS_LATITUDE: 55.7520
+      GPS_LONGITUDE: 37.6175
+      GPS_ALTITUDE: 3300    
+volumes:
+  postgresqldata:
+  redisdata:
+  config:
+  data:
+  log:
